@@ -1,0 +1,15 @@
+name: "S3 downkload"
+description: "Download objects from a designated bucket with a provided prefix."
+inputs:
+  bucket:
+    description: "An S3 bucket."
+    required: true
+  path:
+    description: "One or more file or directory paths to download."
+    required: true
+  prefix:
+    description: "Prefixed to all object names."
+    required: false
+runs:
+  using: "node16"
+  main: "lib/main.js"
