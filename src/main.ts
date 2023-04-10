@@ -1,5 +1,5 @@
-import { writeFile } from "fs/promises";
-import { join } from "path";
+import { mkdir, writeFile } from "fs/promises";
+import { join, dirname } from "path";
 import { getInput, setFailed } from "@actions/core";
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
 
@@ -39,6 +39,7 @@ async function main() {
             if (response.Body !== undefined) {
                 const filename = join(process.cwd(), prefix.length ? key.slice(key.indexOf("/") + 1) : key);
                 const data = await response.Body.transformToByteArray();
+                await mkdir(dirname(filename), { recursive: true });
                 await writeFile(filename, data);
                 console.info("Downloaded:", filename);
             }
