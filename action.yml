@@ -1,4 +1,4 @@
-name: "S3 downkload"
+name: "S3 download"
 description: "Download objects from a designated bucket with a provided prefix."
 inputs:
   bucket:
