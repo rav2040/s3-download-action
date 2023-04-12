@@ -2,7 +2,7 @@ import type { Readable, Writable } from "stream";
 
 import { mkdir } from "fs/promises";
 import { createWriteStream } from "fs";
-import { join, dirname } from "path";
+import { join, posix, dirname } from "path";
 import { getInput, getMultilineInput, setFailed } from "@actions/core";
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
 
@@ -15,7 +15,7 @@ async function main() {
         const prefix = getInput("prefix");
 
         const keys = (await Promise.all(path.map(async (path) => {
-            return listS3Objects(bucket, [prefix, path].filter(Boolean).join("/"));
+            return listS3Objects(bucket, posix.join(prefix, path));
         }))).flat();
 
         // Filter out directories that are common prefixes.
