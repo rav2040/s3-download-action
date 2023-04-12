@@ -1,4 +1,4 @@
-import type { Readable } from "stream";
+import type { Readable, Writable } from "stream";
 
 import { mkdir } from "fs/promises";
 import { createWriteStream } from "fs";
@@ -43,7 +43,7 @@ async function main() {
             if (response.Body !== undefined) {
                 await mkdir(dirname(filename), { recursive: true });
                 const writeStream = createWriteStream(filename);
-                (response.Body as Readable).pipe(writeStream);
+                await asyncPipe(response.Body as Readable, writeStream);
                 filesDownloaded++;
                 console.info("Downloaded:", filename);
             }
@@ -70,6 +70,15 @@ async function listS3Objects(bucket: string, prefix: string, continuationToken?:
     }
 
     return result;
+}
+
+function asyncPipe(readStream: Readable, writeStream: Writable) {
+    return new Promise<void>((resolve, reject) => {
+        readStream.on("error", reject);
+        writeStream.on("error", reject);
+        writeStream.on("close", resolve);
+        readStream.pipe(writeStream);
+    });
 }
 
 main();
