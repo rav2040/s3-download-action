@@ -33,7 +33,7 @@ async function main() {
             const isDir = filename.at(-1) === "/";
 
             if (isDir) {
-                await mkdir(dirname(filename), { recursive: true });
+                await mkdir(filename, { recursive: true });
                 console.info("Created directory:", filename);
                 return;
             }
