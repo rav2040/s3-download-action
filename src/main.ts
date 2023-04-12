@@ -29,22 +29,24 @@ async function main() {
         await Promise.all(uniqueKeys.map(async (key) => {
             const filename = join(process.cwd(), prefix.length ? key.slice(key.indexOf("/") + 1) : key);
 
+            if (filename.at(-1) === "/") {
+                await mkdir(dirname(filename), { recursive: true });
+                console.info("Created directory:", filename);
+                return;
+            }
+
             const getObjectCommand = new GetObjectCommand({
                 Bucket: bucket,
                 Key: key,
             });
             const response = await s3.send(getObjectCommand);
 
-            await mkdir(dirname(filename), { recursive: true });
+            if (response.Body !== undefined) {
+                const writeStream = createWriteStream(filename);
+                (response.Body as Readable).pipe(writeStream);
+                console.info("Downloaded:", filename);
+            }
 
-            console.log(response)
-
-            // if (response.Body !== undefined) {
-            //     const writeStream = createWriteStream(filename);
-            //     (response.Body as Readable).pipe(writeStream);
-            // }
-
-            console.info("Downloaded:", filename);
         }))
     } catch (err) {
         if (err instanceof Error) setFailed(err);
