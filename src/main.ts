@@ -24,12 +24,15 @@ async function main() {
             return (response.Contents ?? []).map((obj) => obj.Key ?? "").filter(Boolean);
         }))).flat();
 
-        const uniqueKeys = Array.from(new Set(keys));
+        // Filter out directories that are common prefixes.
+        const uniqueKeys = Array.from(new Set(keys))
+            .filter((a, _, arr) => !arr.some((b) => a !== b && b.startsWith(a)));
 
         await Promise.all(uniqueKeys.map(async (key) => {
             const filename = join(process.cwd(), prefix.length ? key.slice(key.indexOf("/") + 1) : key);
+            const isDir = filename.at(-1) === "/";
 
-            if (filename.at(-1) === "/") {
+            if (isDir) {
                 await mkdir(dirname(filename), { recursive: true });
                 console.info("Created directory:", filename);
                 return;
@@ -42,6 +45,7 @@ async function main() {
             const response = await s3.send(getObjectCommand);
 
             if (response.Body !== undefined) {
+                await mkdir(dirname(filename), { recursive: true });
                 const writeStream = createWriteStream(filename);
                 (response.Body as Readable).pipe(writeStream);
                 console.info("Downloaded:", filename);
