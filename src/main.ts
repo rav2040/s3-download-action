@@ -6,22 +6,17 @@ import { join, dirname } from "path";
 import { getInput, getMultilineInput, setFailed } from "@actions/core";
 import { S3Client, ListObjectsV2Command, GetObjectCommand } from "@aws-sdk/client-s3";
 
+const s3 = new S3Client({});
+
 async function main() {
     try {
         const bucket = getInput("bucket", { required: true });
         const path = getMultilineInput("path", { required: true });
         const prefix = getInput("prefix");
 
-        const s3 = new S3Client({});
 
         const keys = (await Promise.all(path.map(async (path) => {
-            const listObjectsCommand = new ListObjectsV2Command({
-                Bucket: bucket,
-                Prefix: [prefix, path].filter(Boolean).join("/"),
-            });
-
-            const response = await s3.send(listObjectsCommand);
-            return (response.Contents ?? []).map((obj) => obj.Key ?? "").filter(Boolean);
+            return listS3Objects(bucket, [prefix, path].filter(Boolean).join("/"));
         }))).flat();
 
         // Filter out directories that are common prefixes.
@@ -55,6 +50,23 @@ async function main() {
     } catch (err) {
         if (err instanceof Error) setFailed(err);
     }
+}
+
+async function listS3Objects(bucket: string, prefix: string, continuationToken?: string): Promise<string[]> {
+    const listObjectsCommand = new ListObjectsV2Command({
+        Bucket: bucket,
+        Prefix: prefix,
+        ContinuationToken: continuationToken
+    });
+
+    const response = await s3.send(listObjectsCommand);
+    const result = (response.Contents ?? []).map((obj) => obj.Key ?? "").filter(Boolean);
+
+    if (response.IsTruncated) {
+        return result.concat(await listS3Objects(bucket, prefix, response.NextContinuationToken));
+    }
+
+    return result;
 }
 
 main();
