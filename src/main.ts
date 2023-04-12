@@ -37,10 +37,12 @@ async function main() {
 
             await mkdir(dirname(filename), { recursive: true });
 
-            if (response.Body !== undefined) {
-                const writeStream = createWriteStream(filename);
-                (response.Body as Readable).pipe(writeStream);
-            }
+            console.log(response)
+
+            // if (response.Body !== undefined) {
+            //     const writeStream = createWriteStream(filename);
+            //     (response.Body as Readable).pipe(writeStream);
+            // }
 
             console.info("Downloaded:", filename);
         }))
