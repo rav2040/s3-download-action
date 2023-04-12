@@ -14,7 +14,6 @@ async function main() {
         const path = getMultilineInput("path", { required: true });
         const prefix = getInput("prefix");
 
-
         const keys = (await Promise.all(path.map(async (path) => {
             return listS3Objects(bucket, [prefix, path].filter(Boolean).join("/"));
         }))).flat();
@@ -22,6 +21,8 @@ async function main() {
         // Filter out directories that are common prefixes.
         const uniqueKeys = Array.from(new Set(keys))
             .filter((a, _, arr) => !arr.some((b) => a !== b && b.startsWith(a)));
+
+        let filesDownloaded = 0;
 
         await Promise.all(uniqueKeys.map(async (key) => {
             const filename = join(process.cwd(), prefix.length ? key.slice(key.indexOf("/") + 1) : key);
@@ -43,10 +44,12 @@ async function main() {
                 await mkdir(dirname(filename), { recursive: true });
                 const writeStream = createWriteStream(filename);
                 (response.Body as Readable).pipe(writeStream);
+                filesDownloaded++;
                 console.info("Downloaded:", filename);
             }
+        }));
 
-        }))
+        console.log("### Total files downloaded:", filesDownloaded, "###");
     } catch (err) {
         if (err instanceof Error) setFailed(err);
     }
