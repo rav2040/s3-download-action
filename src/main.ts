@@ -20,7 +20,9 @@ async function main() {
 
         // Filter out directories that are common prefixes.
         const uniqueKeys = Array.from(new Set(keys))
-            .filter((a, i, arr) => !arr.some((b, j) => i !== j && b.startsWith(a) && b.length > a.length));
+            .filter((a, i, arr) => {
+                return a.at(-1) !== "/" || !arr.some((b, j) => i !== j && b.startsWith(a) && b.length > a.length)
+            });
 
         let filesDownloaded = 0;
 
