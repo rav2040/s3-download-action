@@ -1,6 +1,6 @@
 import type { Readable, Writable } from "stream";
 
-import { mkdir } from "fs/promises";
+import { mkdir, writeFile } from "fs/promises";
 import { createWriteStream } from "fs";
 import { join, posix, dirname } from "path";
 import { getInput, getMultilineInput, setFailed } from "@actions/core";
@@ -42,13 +42,19 @@ async function main() {
             });
             const response = await s3.send(getObjectCommand);
 
+            if (response.$metadata.httpStatusCode !== 200) return;
+
+            await mkdir(dirname(filename), { recursive: true });
+
             if (response.Body !== undefined) {
-                await mkdir(dirname(filename), { recursive: true });
                 const writeStream = createWriteStream(filename);
                 await asyncPipe(response.Body as Readable, writeStream);
-                filesDownloaded++;
-                console.info("Downloaded:", filename);
+            } else {
+                await writeFile(filename, "");
             }
+
+            filesDownloaded++;
+            console.info("Downloaded:", filename);
         }));
 
         console.log("### Total files downloaded:", filesDownloaded, "###");
