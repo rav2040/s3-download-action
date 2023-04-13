@@ -1,6 +1,6 @@
 import type { Readable, Writable } from "stream";
 
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir } from "fs/promises";
 import { createWriteStream } from "fs";
 import { join, posix, dirname } from "path";
 import { getInput, getMultilineInput, setFailed } from "@actions/core";
@@ -27,12 +27,12 @@ async function main() {
         let filesDownloaded = 0;
 
         await Promise.all(uniqueKeys.map(async (key) => {
-            const filename = join(process.cwd(), prefix.length ? key.slice(key.indexOf("/") + 1) : key);
-            const isDir = filename.at(-1) === "/";
+            const filepath = join(process.cwd(), key.slice(prefix.length));
 
-            if (isDir) {
-                await mkdir(filename, { recursive: true });
-                console.info("Created directory:", filename);
+            if (key.at(-1) === "/") {
+                // Is directory
+                await mkdir(filepath, { recursive: true });
+                console.info("Downloaded:", filepath);
                 return;
             }
 
@@ -42,19 +42,13 @@ async function main() {
             });
             const response = await s3.send(getObjectCommand);
 
-            if (response.$metadata.httpStatusCode !== 200) return;
-
-            await mkdir(dirname(filename), { recursive: true });
-
-            if (response.Body !== undefined) {
-                const writeStream = createWriteStream(filename);
+            if (response.$metadata.httpStatusCode === 200 && response.Body !== undefined) {
+                await mkdir(dirname(filepath), { recursive: true });
+                const writeStream = createWriteStream(filepath);
                 await asyncPipe(response.Body as Readable, writeStream);
-            } else {
-                await writeFile(filename, "");
+                filesDownloaded++;
+                console.info("Downloaded:", filepath);
             }
-
-            filesDownloaded++;
-            console.info("Downloaded:", filename);
         }));
 
         console.log("### Total files downloaded:", filesDownloaded, "###");
